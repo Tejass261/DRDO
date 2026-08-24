@@ -1,0 +1,8 @@
+sensor_host = 169.254.1.1
+sensor_port = 30303
+broker_host = 127.0.0.1
+broker_port = 1883
+mqtt_topic_fcad = sensors/fcad
+mqqtt_keepalive = 60
+mqtt_request_fcad = Discovery
+request_interval = 3
