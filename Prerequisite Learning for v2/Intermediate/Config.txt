@@ -1,0 +1,36 @@
+{
+  "global": {
+    "ip_broker": "127.0.0.1",
+    "port_broker": 1883,
+    "broker_keep_alive": 60
+  },
+  "sensors": {
+    "bio_sensor": {
+      "protocol": "tcp",
+      "ip": "127.0.0.1",
+      "port": 5050,
+      "request": "send bio_sensor_1",
+      "request_interval": 3,
+      "topic": "sensors/Bio_Sensor_1",
+      "parser": "passthrough"
+    },
+    "chem_sensor": {
+      "protocol": "tcp",
+      "ip": "127.0.0.2",
+      "port": 5051,
+      "request": "send chem_sensor_1",
+      "request_interval": 3,
+      "topic": "sensors/Chem_Sensor_1",
+      "parser": "passthrough"
+    },
+    "fcad_sensor": {
+      "protocol": "udp",
+      "ip": "169.254.1.1",
+      "port": 30303,
+      "request": "Discovery",
+      "request_interval": 3,
+      "topic": "sensors/fcad",
+      "parser": "fcad_bytes"
+    }
+  }
+}

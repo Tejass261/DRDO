@@ -67,16 +67,15 @@ def main():
 # ---------------------------------------------------------------------
     try:
         client_receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Set socket timeout so recv() never hangs indefinitely
+        # Set socket timeout so recv() doesn't stuck the code
         client_receiver.settimeout(SOCKET_TIMEOUT)
 
         while True:
             try:
-                # 1. Send request
                 client_receiver.sendto(REQUEST.encode(), (SENSOR_HOST, SENSOR_PORT))
                 print("Request sent to Sensor...")
 
-                # 2. Receive response (Will raise socket.timeout if no reply within 2.0s)
+                # 2. Receive response (socket.timeout if no reply within 2.0s)
                 data = client_receiver.recv(4096)
                 received = bytearray(data)
 
@@ -96,7 +95,7 @@ def main():
                     print(f"Warning: Received packet too short ({len(received)} bytes)")
 
                 print("-" * 50)
-                # Successful exchange -> wait the standard interval
+                # Successful exchange
                 time.sleep(REQUEST_INTERVAL)
 
             except socket.timeout:

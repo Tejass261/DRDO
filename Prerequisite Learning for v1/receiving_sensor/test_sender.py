@@ -20,3 +20,7 @@ def main():
 
 if __name__ == "__main__":
         main()
+# i=0
+# while(i<=44):
+#     print(f"SystemStat[{i}]")
+#     i = i+1

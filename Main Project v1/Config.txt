@@ -1,0 +1,17 @@
+ip_sensor_bio = 127.0.0.1
+port_sensor_bio = 5050
+req_sensor_bio = send bio_sensor_1
+ip_sensor_chem = 127.0.0.2
+port_sensor_chem = 5051
+req_sensor_chem = send chem_sensor_1
+ip_broker = 127.0.0.1
+port_broker = 1883
+req_interval = 3
+broker_keep_alive = 60
+mqtt_topic_Bio_Convertor = sensors/Bio_Sensor_1
+mqtt_topic_Chem_Convertor = sensors/Chem_Sensor_1
+mqtt_topic_bio_Convertor = sensors/fcad
+sensor_host_fcad = 169.254.1.1
+sensor_port_fcad = 30303
+mqtt_topic_fcad = sensors/fcad
+request_sensor_fcad = Discovery
