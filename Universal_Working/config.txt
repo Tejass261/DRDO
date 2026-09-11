@@ -1,0 +1,46 @@
+# =========================
+# MQTT BROKER
+# =========================
+
+broker_host=127.0.0.1
+broker_port=1883
+broker_keepalive=60
+
+
+# =========================
+# BIO SENSOR
+# =========================
+
+bio_host=127.0.0.1
+bio_port=5050
+bio_request=send bio_sensor_1
+bio_topic=sensors/Bio_Sensor_1
+bio_interval=3
+bio_protocol=tcp
+bio_conversion=raw
+
+
+# =========================
+# CHEM SENSOR
+# =========================
+
+chem_host=127.0.0.2
+chem_port=5051
+chem_request=send chem_sensor_1
+chem_topic=sensors/Chem_Sensor_1
+chem_interval=3
+chem_protocol=tcp
+chem_conversion=raw
+
+
+# =========================
+# FCAD SENSOR
+# =========================
+
+fcad_host=169.254.1.1
+fcad_port=30303
+fcad_request=Discovery
+fcad_topic=sensors/fcad
+fcad_interval=3
+fcad_protocol=udp
+fcad_conversion=fcad
