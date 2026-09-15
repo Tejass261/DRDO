@@ -27,6 +27,20 @@
 --> universal config file is used and every program picks up values from centralized config file, making it easy to edit variables.
 --> An attempt at a universal convertor is attempted in v2 of this project. 
 
+-->version 2 deals with the universal convertor, where, we implemented the learning of all topics and created a universal convertor
+-->the universal convertor architecture is as follows
+	sensor_bio  --> uni_conevertor --|
+	sensor_fcad --> uni_conevertor --|-->subscriber
+	sensor_chem --> uni_conevertor --|
+
+--> if a new sensor is to be added it is directly added by just adding values in config file no need to edit code
+--> each sensor doesn't need its respective convertor, just a universal convertor working separately for each sensor
+
+--> version 3 includes major code improvements, like proper error control and voluntary closing of servers, subscriber, or convertors
+    manually in a way it doesn't crash
+--> it also impliments the fact that the 3 sensors earlier created were just types and sensors can be any one of the type
+--> there can be various sensors of the same type and be located on different locations, differenciating them on teh basis of location
+--> in version 3 our backend is fully complete and now we can move to ui or frontend learning.
 #-----------------------------------------------------------------------------------------------------------------------------------------
 Data Conversions from OEM or other protocols to MQTT string passing
 	
