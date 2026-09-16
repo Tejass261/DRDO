@@ -1,0 +1,55 @@
+{
+  "global": {
+    "ip_broker": "127.0.0.1",
+    "port_broker": 1883,
+    "broker_keep_alive": 60
+  },
+  "sensor_types": {
+    "bio": {
+      "protocol": "tcp",
+      "parser": "passthrough"
+    },
+    "chem": {
+      "protocol": "tcp",
+      "parser": "passthrough"
+    },
+    "fcad": {
+      "protocol": "udp",
+      "parser": "fcad_bytes"
+    }
+  },
+  "sensors": {
+    "bio-main-gate-01": {
+      "type": "bio",
+      "location": "main-gate",
+      "ip": "127.0.0.1",
+      "port": 5050,
+      "request": "send bio-main-gate-01",
+      "request_interval": 3
+    },
+    "bio-director-office-01": {
+      "type": "bio",
+      "location": "director-office",
+      "ip": "127.0.0.1",
+      "port": 5052,
+      "request": "send bio-director-office-01",
+      "request_interval": 3
+    },
+    "chem-main-gate-01": {
+      "type": "chem",
+      "location": "main-gate",
+      "ip": "127.0.0.1",
+      "port": 5051,
+      "request": "send chem-main-gate-01",
+      "request_interval": 3
+    },
+    "chem-director-office-01": {
+      "type": "chem",
+      "location": "director-office",
+      "ip": "127.0.0.1",
+      "port": 5053,
+      "request": "send chem-director-office-01",
+      "request_interval": 3
+    }
+  }
+}
