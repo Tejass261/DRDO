@@ -1,0 +1,9 @@
+My Project should have the following architectural working
+	Backend(Complete) should provide the frontend with direct data values to be printed on the GUI,
+	currently, frontend was subscribing to backend separately which caused double failure possibilities,
+	Now, frontend does nothing except just receiving and displaying values received (after processing) from backend
+
+Technologies used :
+	React-Node
+	Vite
+	Electron
