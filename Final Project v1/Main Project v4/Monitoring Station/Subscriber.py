@@ -1,125 +1,514 @@
+import asyncio
 import json
-import time
+import threading
 from datetime import datetime
 from pathlib import Path
+
 import paho.mqtt.client as mqtt
+import websockets
+
+
+# ============================================================
+# PATHS AND CONFIGURATION
+# ============================================================
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = PROJECT_DIR / "Config.txt"
+LOG_DIR = PROJECT_DIR / "log"
 
 with open(CONFIG_PATH, "r", encoding="utf-8") as file:
     CONFIG = json.load(file)
 
 GLOBAL = CONFIG["global"]
-LOG_DIR = PROJECT_DIR / "log"
 
+
+# ============================================================
+# WEBSOCKET CONFIGURATION
+# ============================================================
+
+WEBSOCKET_HOST = "127.0.0.1"
+WEBSOCKET_PORT = 8765
+
+
+# ============================================================
+# CONNECTED WEBSOCKET CLIENTS
+# ============================================================
+
+connected_clients = set()
+
+# The asyncio event loop used by the WebSocket server.
+# MQTT callbacks run in Paho's thread, so we need this
+# reference to safely send data from MQTT -> WebSocket.
+websocket_loop = None
+
+
+# ============================================================
+# SENSOR INFORMATION
+# ============================================================
+
+def build_sensor_list():
+    """
+    Build a clean list of configured sensors.
+
+    This information is sent to the frontend when it connects.
+    The frontend therefore does not need to read Config.txt.
+    """
+
+    sensors = []
+
+    for sensor_id, sensor in CONFIG["sensors"].items():
+
+        topic = (
+            f"sensors/"
+            f"{sensor['location']}/"
+            f"{sensor['type']}/"
+            f"{sensor_id}"
+        )
+
+        sensors.append({
+            "id": sensor_id,
+            "type": sensor["type"],
+            "location": sensor["location"],
+            "ip": sensor["ip"],
+            "port": sensor["port"],
+            "topic": topic
+        })
+
+    return sensors
+
+
+# ============================================================
+# LOGGING
+# ============================================================
 
 def save_data(location, sensor_type, sensor_id, payload):
+    """
+    Save the original sensor payload to a daily log file.
+    """
+
     folder = LOG_DIR / location / sensor_type
     folder.mkdir(parents=True, exist_ok=True)
+
     date = datetime.now().strftime("%Y-%m-%d")
+
     path = folder / f"{sensor_id}_{date}.txt"
 
     with open(path, "a", encoding="utf-8") as file:
-        file.write(f"{datetime.now():%Y-%m-%d,%H:%M:%S},{payload}\n")
+        file.write(
+            f"{datetime.now():%Y-%m-%d,%H:%M:%S},{payload}\n"
+        )
 
 
-def display_bio(data):
-    if len(data) != 6:
-        raise ValueError("Bio data should have 6 fields")
-    print(f"Sample Type                       : {data[0]}")
-    print(f"Small Particle Count              : {data[1]}")
-    print(f"Large Particle Count              : {data[2]}")
-    print(f"Small Particle Biological Load    : {data[3]}")
-    print(f"Large Particle Biological Load    : {data[4]}")
-    print(f"Alarm                             : {data[5]}")
+# ============================================================
+# SENSOR DATA PARSING
+# ============================================================
+
+def parse_sensor_data(sensor_type, payload):
+    """
+    Convert the raw MQTT payload into structured data.
+
+    IMPORTANT:
+    This processing happens on the BACKEND.
+
+    React/Electron will NOT parse the raw comma-separated
+    sensor payload.
+    """
+
+    data = payload.split(",")
+
+    if sensor_type == "bio":
+
+        if len(data) != 6:
+            raise ValueError(
+                "Bio data should have 6 fields"
+            )
+
+        return {
+            "sampleType": data[0],
+            "smallParticleCount": data[1],
+            "largeParticleCount": data[2],
+            "smallBiologicalLoad": data[3],
+            "largeBiologicalLoad": data[4],
+            "alarm": data[5]
+        }
+
+    elif sensor_type == "chem":
+
+        if len(data) != 5:
+            raise ValueError(
+                "Chem data should have 5 fields"
+            )
+
+        return {
+            "date": data[0],
+            "time": data[1],
+            "gValue": data[2],
+            "hValue": data[3],
+            "mode": data[4]
+        }
+
+    elif sensor_type == "fcad":
+
+        if len(data) != 9:
+            raise ValueError(
+                "FCAD data should have 9 fields"
+            )
+
+        return {
+            "sensorName": data[0],
+            "gValue": data[1],
+            "hValue": data[2],
+            "atmosphericPressureG": data[3],
+            "atmosphericPressureH": data[4],
+            "gPressure": data[5],
+            "hPressure": data[6],
+            "battery": data[7],
+            "mode": data[8]
+        }
+
+    # Unknown sensor type.
+    # Keep the raw data in a generic field.
+    return {
+        "raw": payload
+    }
 
 
-def display_chem(data):
-    if len(data) != 5:
-        raise ValueError("Chem data should have 5 fields")
-    print(f"Date                              : {data[0]}")
-    print(f"Time                              : {data[1]}")
-    print(f"G Value                           : {data[2]}")
-    print(f"H Value                           : {data[3]}")
-    print(f"Mode                              : {data[4]}")
+# ============================================================
+# WEBSOCKET BROADCAST
+# ============================================================
+
+async def broadcast(data):
+    """
+    Send data to every connected WebSocket frontend.
+    """
+
+    if not connected_clients:
+        return
+
+    message = json.dumps(data)
+
+    disconnected_clients = set()
+
+    for client in connected_clients:
+
+        try:
+            await client.send(message)
+
+        except websockets.exceptions.ConnectionClosed:
+            disconnected_clients.add(client)
+
+    connected_clients.difference_update(
+        disconnected_clients
+    )
 
 
-def display_fcad(data):
-    if len(data) != 9:
-        raise ValueError("FCAD data should have 9 fields")
-    print(f"Sensor Name                       : {data[0]}")
-    print(f"G Value                           : {data[1]}")
-    print(f"H Value                           : {data[2]}")
-    print(f"Atmospheric Pressure G            : {data[3]}")
-    print(f"Atmospheric Pressure H            : {data[4]}")
-    print(f"G Pressure                        : {data[5]}")
-    print(f"H Pressure                        : {data[6]}")
-    print(f"Battery                           : {data[7]}")
-    print(f"Mode                              : {data[8]}")
+def broadcast_from_mqtt(data):
+    """
+    MQTT callbacks run in Paho's network thread.
 
+    The WebSocket server runs inside asyncio.
+
+    Therefore, we schedule the broadcast safely on the
+    WebSocket event loop.
+    """
+
+    if websocket_loop is not None:
+
+        asyncio.run_coroutine_threadsafe(
+            broadcast(data),
+            websocket_loop
+        )
+
+
+# ============================================================
+# WEBSOCKET CLIENT HANDLER
+# ============================================================
+
+async def websocket_handler(websocket):
+    """
+    Handle a frontend WebSocket connection.
+    """
+
+    connected_clients.add(websocket)
+
+    print("[WebSocket] Frontend connected.")
+
+    try:
+
+        # ----------------------------------------------------
+        # Send sensor configuration to the frontend.
+        # ----------------------------------------------------
+
+        config_message = {
+            "event": "config",
+            "sensors": build_sensor_list(),
+            "sensorTypes": list(
+                CONFIG["sensor_types"].keys()
+            )
+        }
+
+        await websocket.send(
+            json.dumps(config_message)
+        )
+
+        # ----------------------------------------------------
+        # Keep the connection alive.
+        # ----------------------------------------------------
+
+        await websocket.wait_closed()
+
+    except websockets.exceptions.ConnectionClosed:
+        pass
+
+    finally:
+
+        connected_clients.discard(websocket)
+
+        print(
+            "[WebSocket] Frontend disconnected."
+        )
+
+
+# ============================================================
+# MQTT MESSAGE CALLBACK
+# ============================================================
 
 def on_message(client, userdata, message):
+
     try:
-        # Topic format: sensors/location/type/sensor-id
+
+        # ----------------------------------------------------
+        # Expected topic:
+        #
+        # sensors/location/type/sensor-id
+        # ----------------------------------------------------
+
         topic_parts = message.topic.split("/")
-        if len(topic_parts) != 4 or topic_parts[0] != "sensors":
-            print(f"Ignored topic: {message.topic}")
+
+        if (
+            len(topic_parts) != 4
+            or topic_parts[0] != "sensors"
+        ):
+
+            print(
+                f"[MQTT] Ignored topic: {message.topic}"
+            )
+
             return
 
         location = topic_parts[1]
         sensor_type = topic_parts[2]
         sensor_id = topic_parts[3]
-        payload = message.payload.decode("utf-8")
-        data = payload.split(",")
 
-        print("\n" + "=" * 55)
-        print(f"Location                           : {location}")
-        print(f"Sensor Type                        : {sensor_type}")
-        print(f"Sensor ID                          : {sensor_id}")
+        # ----------------------------------------------------
+        # Decode MQTT payload.
+        # ----------------------------------------------------
 
-        if sensor_type == "bio":
-            display_bio(data)
-        elif sensor_type == "chem":
-            display_chem(data)
-        elif sensor_type == "fcad":
-            display_fcad(data)
-        else:
-            print(f"Raw data                           : {payload}")
+        payload = message.payload.decode(
+            "utf-8"
+        )
 
-        save_data(location, sensor_type, sensor_id, payload)
-        print("=" * 55)
+        print("\n" + "=" * 60)
 
-    except (UnicodeDecodeError, ValueError, OSError) as error:
-        print(f"Data error: {error}")
+        print(
+            f"[MQTT] Received from: {sensor_id}"
+        )
+
+        print(
+            f"[MQTT] Topic: {message.topic}"
+        )
+
+        print(
+            f"[MQTT] Raw payload: {payload}"
+        )
+
+        # ----------------------------------------------------
+        # Backend parses the sensor-specific payload.
+        # ----------------------------------------------------
+
+        parsed_data = parse_sensor_data(
+            sensor_type,
+            payload
+        )
+
+        # ----------------------------------------------------
+        # Save original data to log.
+        # ----------------------------------------------------
+
+        save_data(
+            location,
+            sensor_type,
+            sensor_id,
+            payload
+        )
+
+        # ----------------------------------------------------
+        # Create normalized message for frontend.
+        # ----------------------------------------------------
+
+        reading = {
+            "event": "reading",
+
+            "id": sensor_id,
+
+            "type": sensor_type,
+
+            "location": location,
+
+            "topic": message.topic,
+
+            "receivedAt": datetime.now().isoformat(),
+
+            "data": parsed_data
+        }
+
+        # ----------------------------------------------------
+        # Send processed data to WebSocket clients.
+        # ----------------------------------------------------
+
+        broadcast_from_mqtt(
+            reading
+        )
+
+        print(
+            "[WebSocket] Reading forwarded to frontend."
+        )
+
+        print("=" * 60)
+
+    except (
+        UnicodeDecodeError,
+        ValueError,
+        OSError
+    ) as error:
+
+        print(
+            f"[Backend] Data error: {error}"
+        )
 
 
-def on_connect(client, userdata, flags, reason_code, properties=None):
+# ============================================================
+# MQTT CONNECTION
+# ============================================================
+
+def on_connect(
+    client,
+    userdata,
+    flags,
+    reason_code,
+    properties=None
+):
+
     if reason_code == 0:
-        # # means every location, every sensor type and every sensor ID.
-        client.subscribe("sensors/#")
-        print("Subscribed to all sensor topics: sensors/#")
-    else:
-        print(f"MQTT connection failed: {reason_code}")
 
+        client.subscribe(
+            "sensors/#"
+        )
+
+        print(
+            "[MQTT] Subscribed to sensors/#"
+        )
+
+    else:
+
+        print(
+            f"[MQTT] Connection failed: {reason_code}"
+        )
+
+
+# ============================================================
+# MQTT THREAD
+# ============================================================
+
+def mqtt_thread():
+
+    client = mqtt.Client(
+        mqtt.CallbackAPIVersion.VERSION2
+    )
+
+    client.on_connect = on_connect
+
+    client.on_message = on_message
+
+    client.connect(
+        GLOBAL["ip_broker"],
+        GLOBAL["port_broker"],
+        keepalive=GLOBAL["broker_keep_alive"]
+    )
+
+    print(
+        "[MQTT] Backend MQTT subscriber started."
+    )
+
+    client.loop_forever()
+
+
+# ============================================================
+# WEBSOCKET SERVER
+# ============================================================
+
+async def websocket_server():
+
+    global websocket_loop
+
+    websocket_loop = asyncio.get_running_loop()
+
+    print(
+        f"[WebSocket] Server starting on "
+        f"ws://{WEBSOCKET_HOST}:{WEBSOCKET_PORT}"
+    )
+
+    async with websockets.serve(
+        websocket_handler,
+        WEBSOCKET_HOST,
+        WEBSOCKET_PORT
+    ):
+
+        print(
+            "[WebSocket] Server started."
+        )
+
+        # Keep the server running forever.
+        await asyncio.Future()
+
+
+# ============================================================
+# MAIN
+# ============================================================
 
 def main():
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-    client.on_connect = on_connect
-    client.on_message = on_message
-    client.connect(GLOBAL["ip_broker"], GLOBAL["port_broker"], keepalive=GLOBAL["broker_keep_alive"])
-    client.loop_start()
 
-    print("Subscriber started.")
+    # --------------------------------------------------------
+    # Start MQTT in a background thread.
+    # --------------------------------------------------------
+
+    mqtt_worker = threading.Thread(
+        target=mqtt_thread,
+        daemon=True
+    )
+
+    mqtt_worker.start()
+
+    # --------------------------------------------------------
+    # Start WebSocket server.
+    # --------------------------------------------------------
+
     try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("Stopping subscriber...")
-    finally:
-        client.loop_stop()
-        client.disconnect()
 
+        asyncio.run(
+            websocket_server()
+        )
+
+    except KeyboardInterrupt:
+
+        print(
+            "\n[Backend] Backend stopped."
+        )
+
+
+# ============================================================
+# ENTRY POINT
+# ============================================================
 
 if __name__ == "__main__":
     main()

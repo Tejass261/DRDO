@@ -9,7 +9,6 @@
     "start": "electron ."
   },
   "dependencies": {
-    "mqtt": "^5.10.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
