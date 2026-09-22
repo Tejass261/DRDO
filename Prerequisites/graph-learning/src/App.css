@@ -1,0 +1,70 @@
+/* Overall Page Layout */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f4f6f9;
+  color: #333;
+}
+
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+/* Status Indicator */
+.status-text {
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.status-badge {
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.status-badge.connected {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.disconnected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Grid layout for Sensor Cards */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 20px;
+}
+
+/* Individual Sensor Card */
+.sensor-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.sensor-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1.15rem;
+  color: #1e293b;
+}
+
+.chart-container {
+  width: 100%;
+  height: 260px;
+}

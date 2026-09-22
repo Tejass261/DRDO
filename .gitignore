@@ -1,25 +1,41 @@
 # Node.js dependencies
 node_modules/
+node_modules
 
 # Build output
 dist/
 build/
+dist-ssr
 
-# Vite
+# Vite & Environment files
 .vite/
-
-# Environment files
 .env
 .env.*
+*.local
 
-# IDE files
+# IDE and Editor files
 .idea/
 .vscode/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Temporary files
 *.tmp
 *.temp
 .goutputstream-*
 
-# Logs
+# Logs (Files, general folders, and your specific project path)
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+/Final Project v1/Main Project v4/log/
