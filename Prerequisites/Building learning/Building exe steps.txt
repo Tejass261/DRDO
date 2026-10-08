@@ -1,0 +1,54 @@
+1. Make Subscriber.py into Subscriber.exe that is easily portable
+	-> changed Subscriber.py's file saving into logs so that log appear alongside the exe as right now folder structure is different
+	-> created a separate folder exe final, which has Subscriber folder, which has 3 files, Subscriber.py congif and requirements.txt
+	-> create a virtual env using python -m venv venv inside the Subscriber folder
+	-> venv\Scripts\activate
+	-> python -m pip install -r requirements.txt
+	-> important step is to install pyinstaller using 		python -m pip install pyinstaller
+
+	-> pyinstaller --onefile --windowed --name Subscriber Subscriber.py	creates base for exe creation
+	-> move config in dist folder along wit exe
+
+2. Building electron exe
+	-> Go to Sensor Dashboard/
+	-> run 	npm run build						to test run npm start (loads the static html file)
+	-> npm install --save-dev electron-builder			to install electron builder
+	-> change pachage.json
+		add "dist": "npm run build && electron-builder"		in first bracket
+	-> add subscriber.exe in resources folder inside SensorDashboard/
+	->	add the following as separate bracket (below dev dependencies):-
+			"build": {
+  				"appId": "com.viewer.sensordashboard",
+  				"productName": "Viewer",
+  				"files": [
+    					"dist/**/*",
+    					"electron/**/*",
+    					"package.json"
+  				],
+			"extraResources": [
+    				{
+      				"from": "resources/Subscriber.exe",
+      				"to": "Subscriber.exe"
+    				}
+  			],
+  			"win": {
+    				"target": "nsis"
+  				}
+			}
+	
+	-> update electron/main.cjs to start python backend change code
+	-> updated subscriber.py where to check for config file as per our exe
+	-> right now put config in SensorDashboard/
+	-> run 	npm run dist						(in dist folder everything is created, setup and exe)
+
+	->put the config file manually for now near the exe in dist win-unpacked and check working
+	-> now to make the installer put the config with exe automatically:-
+	-> in package json add below files and above extra resources
+		"extraFiles": [
+    			{
+      			"from": "Config.txt",
+      			"to": "Config.txt"
+    			}
+  		],
+
+	-> build again (npm run dist)

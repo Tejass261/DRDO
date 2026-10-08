@@ -1,0 +1,16 @@
+[Unit]
+Description=Univesal Sensor Convertor - FCAD Main Gate 01
+After=ntwork-online.target
+Wants=ntwork-online.target
+
+[Service]
+Type=simple
+User=drde
+WorkingDirectory=/home/drde/Desktop/UniversalConvertor
+ExecStart=/home/drde/Desktop/UniversalConvertor/venv/bin/python /home/drde/Desk>
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

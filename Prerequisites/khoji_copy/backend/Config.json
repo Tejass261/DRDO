@@ -1,0 +1,19 @@
+{
+  "fcad": {
+    "sensor_ip": "169.254.1.1",
+    "sensor_port": 30303,
+    "request": "Discovery",
+    "request_interval": 3.0,
+    "timeout": 2.0
+  },
+
+  "websocket": {
+    "host": "127.0.0.1",
+    "port": 8765
+  },
+
+  "logging": {
+    "print_packets": true,
+    "print_decoded_data": true
+  }
+}

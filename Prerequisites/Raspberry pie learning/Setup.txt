@@ -1,0 +1,60 @@
+1.	Write OS to the SD card (using Raspberry pie imager), the image file is stored in Raspberry_Universal_Convertor and select it in the “Use Custom” in OS tab.
+
+2.	Setup the pie
+	Hostname: sensor-pi-01
+	Username: pi
+	Password: <your password>
+	SSH: Enable
+	Wi-Fi: Ethernet
+	Wi-Fi country: India
+
+3.	Run “Sudo apt update” and then “sudo apt upgrade –y”
+
+4.	Python3 --version
+	sudo apt install python3 -pip python3 -venv
+
+6. 	mkdir -p ~/UniversalConvertor
+	cd ~/UniversalConvertor
+	
+7. 	python3 -m venv venv
+	source venc/bin/activate		to check "python --version" and then "which python"
+
+8. 	python -m pip install --upgrade pip
+	pip --version
+	pip install paho-mqtt
+
+9.	put config in same directory and universal convertor in a folder Universal_Convertor here so that it is 1 directory below config
+
+10. 	Change mqtt ip to where it will be running (right now in subscriber's pc)
+
+11. 	Check if it works
+	cd Universal_Convertor
+	python Universal_Convertor.py fcad-main-gate-01			if works, good, now automate the process (systemd)
+
+12. 	sudo nano /etc/systemd/system/Universal_Convertor.service
+	paste the text from ini.txt into it
+	save with (ctrl + O) -> Enter -> (Ctrl + X)
+
+13.	sudo systemctl daemon-reload
+	sudo systemctl enable Universal_Convertor.service
+
+14. 	To check if running	sudo systemct1 status Universal_Convertor
+
+
+problem, mosquittoo running on localhost, solution
+check by netstat -ano | findstr 1883
+	add line in config file 192.168.1.2(ip of mqtt comp.) (remember to do in Program Files x86)
+	do 
+	net stop mosquitto
+	net start mosquito
+
+problem, how to setup another ip on raspberry pie to publish to mqtt on mqtt (currently the pc's ip) ip
+	ststemctl status dhcpcd   (if active)
+	sudo nano/etc/dhcpcd.conf
+in the file at end add the two lines
+	
+	interface eth0
+	static ip_address = 192.168.1.20/24	(in range of mqtt where its listening pc)
+restart dhcp
+	sudo systemctl restart dhcpcd
+	ip addr show eth0 	(shows both ip now)
